@@ -422,6 +422,7 @@
       timerId: null,
       currentProblem: null,
       currentChoices: [],
+      currentExplainData: [],
       correctIndex: 0,
       gameActive: false
     };
@@ -603,33 +604,137 @@
 
     function gcd(a, b){ return b ? gcd(b, a % b) : a; }
 
-    function buildChoices(correct) {
-      // Return [choicesArray, correctIndex]
-      const asString = typeof correct === 'string';
-      const isNumber = !asString;
-      const choices = new Set();
-      if (isNumber) {
-        choices.add(Number(correct));
-        while (choices.size < 3) {
-          const delta = randInt(-10, 10) || 1;
-          choices.add(Number(correct) + delta);
+    function buildChoicesForProblem(problem) {
+      // Returns { list: [{ value, why, correct }...3], correctIndex }
+      const meta = problem.meta || { kind: 'generic' };
+      const correct = problem.answer;
+      const list = [];
+      const addChoice = (value, why, isCorrect=false) => {
+        // Avoid duplicates
+        if (list.some(c => String(c.value) === String(value))) return false;
+        list.push({ value, why, correct: isCorrect });
+        return true;
+      };
+
+      // Add correct
+      addChoice(correct, 'Correct', true);
+
+      const pushUntil = (makeFn) => {
+        let safety = 20;
+        while (list.length < 3 && safety-- > 0) {
+          const cand = makeFn();
+          if (cand) addChoice(cand.value, cand.why, false);
         }
-        const arr = shuffle(Array.from(choices)).slice(0,3);
-        const idx = arr.findIndex(v => v === Number(correct));
-        return [arr, idx];
-      } else {
-        // For string answers (like simplified ratios)
-        choices.add(String(correct));
-        while (choices.size < 3) {
-          const [p, q] = String(correct).split(':').map(Number);
-          const tweakP = Math.max(1, p + randInt(-1, 1));
-          const tweakQ = Math.max(1, q + randInt(-1, 1));
-          choices.add(`${tweakP}:${tweakQ}`);
+      };
+
+      const k = meta.kind;
+      switch (k) {
+        case 'add': {
+          const trueVal = meta.a + meta.b;
+          pushUntil(() => ({ value: trueVal + 1, why: 'Off-by-one while carrying' }));
+          pushUntil(() => ({ value: meta.a - meta.b, why: 'Used subtraction instead of addition' }));
+          pushUntil(() => ({ value: meta.a + (meta.b + 10), why: 'Carried an extra ten' }));
+          break;
         }
-        const arr = shuffle(Array.from(choices)).slice(0,3);
-        const idx = arr.findIndex(v => v === String(correct));
-        return [arr, idx];
+        case 'sub': {
+          const trueVal = meta.a - meta.b;
+          pushUntil(() => ({ value: trueVal - 1, why: 'Off-by-one after borrowing' }));
+          pushUntil(() => ({ value: meta.a + meta.b, why: 'Added instead of subtracting' }));
+          pushUntil(() => ({ value: meta.b - meta.a, why: 'Swapped order (b - a)' }));
+          break;
+        }
+        case 'mul': {
+          const trueVal = meta.a * meta.b;
+          pushUntil(() => ({ value: meta.a * (meta.b + 1), why: 'One factor too large' }));
+          pushUntil(() => ({ value: meta.a + meta.b, why: 'Added instead of multiplied' }));
+          pushUntil(() => ({ value: meta.a * Math.max(1, meta.b - 1), why: 'One factor too small' }));
+          break;
+        }
+        case 'div': {
+          // prod ÷ a = b
+          pushUntil(() => ({ value: meta.a, why: 'Confused divisor with quotient' }));
+          pushUntil(() => ({ value: Math.max(1, meta.b - 1), why: 'Quotient off by one' }));
+          pushUntil(() => ({ value: meta.b + 1, why: 'Quotient off by one' }));
+          break;
+        }
+        case 'fracAdd': {
+          const approx = +(meta.num / meta.den).toFixed(2);
+          pushUntil(() => ({ value: +(((meta.a + meta.c) / (meta.b + meta.d))).toFixed(2), why: 'Added numerators and denominators' }));
+          pushUntil(() => ({ value: +((meta.a/meta.b) + (meta.c/meta.d)).toFixed(1), why: 'Rounded too early' }));
+          pushUntil(() => ({ value: +(((meta.a + meta.c) / meta.b).toFixed(2)), why: 'Kept first denominator only' }));
+          break;
+        }
+        case 'decAdd': {
+          const trueVal = +(meta.a + meta.b).toFixed(1);
+          pushUntil(() => ({ value: Math.trunc(meta.a) + Math.trunc(meta.b), why: 'Ignored decimals' }));
+          pushUntil(() => ({ value: +(meta.a - meta.b).toFixed(1), why: 'Used subtraction instead' }));
+          pushUntil(() => ({ value: +((meta.a + meta.b).toFixed(0)), why: 'Rounded to whole number' }));
+          break;
+        }
+        case 'decSub': {
+          const trueVal = +(meta.a - meta.b).toFixed(1);
+          pushUntil(() => ({ value: Math.trunc(meta.a) - Math.trunc(meta.b), why: 'Ignored decimals' }));
+          pushUntil(() => ({ value: +(meta.a + meta.b).toFixed(1), why: 'Used addition instead' }));
+          pushUntil(() => ({ value: +((meta.a - meta.b).toFixed(0)), why: 'Rounded to whole number' }));
+          break;
+        }
+        case 'linAdd': {
+          pushUntil(() => ({ value: meta.n + meta.k, why: 'Added k to both sides' }));
+          pushUntil(() => ({ value: meta.k, why: 'Mistook k for the answer' }));
+          pushUntil(() => ({ value: meta.n, why: 'Forgot to isolate x' }));
+          break;
+        }
+        case 'linMul': {
+          const trueX = meta.prod / meta.k;
+          pushUntil(() => ({ value: meta.prod - meta.k, why: 'Subtracted coefficient' }));
+          pushUntil(() => ({ value: meta.prod * meta.k, why: 'Multiplied instead of dividing' }));
+          pushUntil(() => ({ value: Math.max(1, trueX + 1), why: 'Off by one' }));
+          break;
+        }
+        case 'percent': {
+          pushUntil(() => ({ value: +(meta.base / (meta.p/100)).toFixed(2), why: 'Divided by the percent' }));
+          pushUntil(() => ({ value: +(meta.base * meta.p).toFixed(2), why: 'Forgot to convert percent to decimal' }));
+          pushUntil(() => ({ value: +(meta.base * (100/meta.p)).toFixed(2), why: 'Inverted percent' }));
+          break;
+        }
+        case 'ratio': {
+          const wrongFactor = Math.max(2, meta.g - 1);
+          pushUntil(() => ({ value: `${Math.round(meta.a/wrongFactor)}:${Math.round(meta.b/wrongFactor)}`, why: `Divided by wrong factor (/${wrongFactor})` }));
+          pushUntil(() => ({ value: `${meta.a}:${meta.b}`, why: 'Left ratio unsimplified' }));
+          pushUntil(() => ({ value: `${meta.b/meta.g}:${meta.a/meta.g}`, why: 'Swapped parts after simplifying' }));
+          break;
+        }
+        case 'pythag': {
+          pushUntil(() => ({ value: meta.a + meta.b, why: 'Added legs without squaring' }));
+          pushUntil(() => ({ value: +(Math.sqrt(meta.a + meta.b)).toFixed(2), why: 'Square root of sum of legs' }));
+          pushUntil(() => ({ value: meta.a*meta.a + meta.b*meta.b, why: 'Forgot final square root' }));
+          break;
+        }
+        default: {
+          // Generic fallbacks near the correct number
+          const base = Number(correct) || 0;
+          pushUntil(() => ({ value: base + 1, why: 'Off-by-one' }));
+          pushUntil(() => ({ value: base - 1, why: 'Off-by-one' }));
+          pushUntil(() => ({ value: base + 2, why: 'Small arithmetic slip' }));
+        }
       }
+
+      // If still less than 3 (e.g., string/ratio duplicates), pad with +/- small tweaks
+      const makePad = () => {
+        const cv = correct;
+        if (typeof cv === 'number') {
+          const delta = randInt(2, 4) * (Math.random()<0.5?-1:1);
+          return { value: +(cv + delta).toFixed(2), why: 'Plausible miscalculation' };
+        } else {
+          const [p,q] = String(cv).split(':').map(Number);
+          return { value: `${Math.max(1,p+1)}:${Math.max(1,q-1)}`, why: 'Adjusted one part of ratio' };
+        }
+      };
+      while (list.length < 3) addChoice(...Object.values(makePad()), false);
+
+      const shuffled = shuffle(list);
+      const correctIndex = shuffled.findIndex(c => c.correct);
+      return { list: shuffled, correctIndex };
     }
 
     // =============================
@@ -644,6 +749,7 @@
       state.timerId = null;
       state.currentProblem = null;
       state.currentChoices = [];
+      state.currentExplainData = [];
       state.correctIndex = 0;
       state.gameActive = false;
       renderHud();
@@ -673,9 +779,10 @@
     function nextProblem() {
       const p = generateProblem(state.grade, state.difficulty);
       state.currentProblem = p;
-      const [choices, idx] = buildChoices(p.answer);
-      state.currentChoices = choices;
-      state.correctIndex = idx;
+      const built = buildChoicesForProblem(p);
+      state.currentChoices = built.list.map(c => c.value);
+      state.currentExplainData = built.list;
+      state.correctIndex = built.correctIndex;
       renderProblem();
     }
 
@@ -758,18 +865,37 @@
     }
 
     function showExplanation() {
-      // Build explanations for each choice and a tip
-      const expl = buildExplanations(state.currentProblem, state.currentChoices, state.correctIndex);
+      const meta = state.currentProblem.meta || { kind: 'generic' };
+      const tip = tipFor(meta);
       el.explainList.innerHTML = '';
-      state.currentChoices.forEach((choice, i) => {
-        const row = document.createElement('div');
+      state.currentExplainData.forEach((item, i) => {
         const label = i === 0 ? 'A' : (i === 1 ? 'B' : 'C');
-        const ok = i === state.correctIndex;
-        row.innerHTML = `<strong style="color:${ok ? 'var(--accent-2)' : 'var(--danger)'}">${label}) ${choice}</strong> — ${expl.perChoice[i]}`;
+        const ok = item.correct === true;
+        const why = ok ? correctExplanation(meta) : item.why;
+        const row = document.createElement('div');
+        row.innerHTML = `<strong style="color:${ok ? 'var(--accent-2)' : 'var(--danger)'}">${label}) ${item.value}</strong> — ${why}`;
         el.explainList.appendChild(row);
       });
-      el.tip.innerHTML = `<strong>Tip:</strong> ${expl.tip}`;
+      el.tip.innerHTML = `<strong>Tip:</strong> ${tip}`;
       el.explain.style.display = 'block';
+    }
+
+    function correctExplanation(meta) {
+      switch (meta.kind) {
+        case 'add': return `${meta.a} + ${meta.b} = ${meta.a + meta.b}`;
+        case 'sub': return `${meta.a} - ${meta.b} = ${meta.a - meta.b}`;
+        case 'mul': return `${meta.a} × ${meta.b} = ${meta.a * meta.b}`;
+        case 'div': return `${meta.prod} ÷ ${meta.a} = ${meta.b}`;
+        case 'fracAdd': return `Common denom ${meta.b}×${meta.d} = ${meta.b*meta.d}. Sum ${meta.a}×${meta.d} + ${meta.c}×${meta.b} = ${meta.num}/${meta.den} ≈ ${(meta.num/meta.den).toFixed(2)}`;
+        case 'decAdd': return `Align decimals: ${meta.a} + ${meta.b} = ${(meta.a + meta.b).toFixed(1)}`;
+        case 'decSub': return `Align decimals: ${meta.a} - ${meta.b} = ${(meta.a - meta.b).toFixed(1)}`;
+        case 'linAdd': return `x + ${meta.k} = ${meta.n} ⇒ x = ${meta.n} - ${meta.k} = ${meta.n - meta.k}`;
+        case 'linMul': return `${meta.k}x = ${meta.prod} ⇒ x = ${meta.prod}/${meta.k} = ${meta.prod/meta.k}`;
+        case 'percent': return `${meta.p}% of ${meta.base} = ${meta.base} × ${meta.p}/100 = ${((meta.p/100)*meta.base).toFixed(2)}`;
+        case 'ratio': return `gcd(${meta.a}, ${meta.b}) = ${meta.g}. Simplify: ${meta.a}/${meta.g}:${meta.b}/${meta.g}`;
+        case 'pythag': return `c = √(${meta.a}² + ${meta.b}²) = √(${meta.a*meta.a} + ${meta.b*meta.b}) ≈ ${meta.c}`;
+        default: return `This is the correct result.`;
+      }
     }
 
     // =============================
