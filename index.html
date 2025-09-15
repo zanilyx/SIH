@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Math Blaster</title>
+  <title>Gram Vidhya</title>
   <style>
     /*
       Math Blaster - Single file prototype
@@ -275,7 +275,7 @@
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L12 14.77 7.22 16.7l.91-5.32L4.27 7.62l5.34-.78L12 2z" fill="#7aa2ff"/>
       </svg>
-      <h1>Math Blaster</h1>
+      <h1>Gram Vidhya</h1>
     </div>
   </header>
 
@@ -287,6 +287,13 @@
         <div class="field">
           <label for="playerName">Player Name</label>
           <input id="playerName" type="text" placeholder="Enter your name" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="subject">Subject</label>
+          <select id="subject">
+            <option value="Math">Math</option>
+            <option value="SocialStudies">Social Studies</option>
+          </select>
         </div>
         <div class="field">
           <label for="mode">Mode</label>
@@ -413,6 +420,7 @@
       playerName: '',
       grade: 1,
       difficulty: 'Easy',
+      subject: 'Math',
       mode: 'Competitive',
       score: 0,
       streak: 0,
@@ -430,6 +438,7 @@
     // Elements
     const el = {
       playerName: document.getElementById('playerName'),
+      subject: document.getElementById('subject'),
       mode: document.getElementById('mode'),
       grade: document.getElementById('grade'),
       difficulty: document.getElementById('difficulty'),
@@ -489,7 +498,7 @@
     }
 
     // =============================
-    // PROBLEM GENERATOR
+    // PROBLEM GENERATOR (Math + Social Studies)
     // =============================
     // NOTE: To extend problem types, add a generator that returns { text, answer }
     // and update selectRangeByGradeDifficulty for ranges.
@@ -513,6 +522,9 @@
     }
 
     function generateProblem(grade, difficulty) {
+      if (state.subject === 'SocialStudies') {
+        return generateSocialStudiesProblem(grade);
+      }
       const range = selectRangeByGradeDifficulty(grade, difficulty);
       // Grades 1-2: addition/subtraction
       if (grade <= 2) {
@@ -603,6 +615,70 @@
     }
 
     function gcd(a, b){ return b ? gcd(b, a % b) : a; }
+
+    // Social Studies generator
+    // Simple age-appropriate MCQs aligned broadly with Odisha state board themes
+    // NOTE: These are illustrative placeholders; refine with exact text from textbooks if needed.
+    const SS_BANK = {
+      1: [
+        { q: 'Which one is a place where you live?', a: 'Home', d: ['Market','School'], tip: 'Home is where your family lives.', correctWhy: 'Home is the place where we live with our family every day.', reasons: { 'Market': 'A market is a place to buy and sell things, not to live.', 'School': 'A school is for learning; students go back home after classes.' } },
+        { q: 'Who helps us cross the road safely?', a: 'Traffic police', d: ['Doctor','Postman'], tip: 'Traffic police manage roads and signals.', correctWhy: 'Traffic police control traffic and help pedestrians cross safely.', reasons: { 'Doctor': 'Doctors treat sick people, not manage roads.', 'Postman': 'Postmen deliver letters and parcels, not control traffic.' } },
+        { q: 'What do we call the group of people in a house?', a: 'Family', d: ['Team','Crowd'], tip: 'Family members care for each other.', correctWhy: 'People living together related by love and care are a family.', reasons: { 'Team': 'A team works together for a task or game, not a household.', 'Crowd': 'A crowd is a large group in a public place, not a household.' } }
+      ],
+      2: [
+        { q: 'What is the festival of lights?', a: 'Diwali', d: ['Holi','Eid'], tip: 'People light diyas and decorate homes.', correctWhy: 'Diwali is called the festival of lights because homes are lit with diyas.', reasons: { 'Holi': 'Holi is the festival of colors, not lights.', 'Eid': 'Eid celebrates prayer and feasting after Ramadan; not mainly lights.' } },
+        { q: 'What is our national flag called?', a: 'Tiranga', d: ['Ashoka','Padma'], tip: 'It has three colors and the Ashoka Chakra.', correctWhy: 'The national flag is called Tiranga (three colors).', reasons: { 'Ashoka': 'Ashoka is a Mauryan emperor; his Chakra is on the flag.', 'Padma': 'Padma means lotus; it is not the name of the flag.' } },
+        { q: 'Who delivers letters?', a: 'Postman', d: ['Farmer','Teacher'], tip: 'Postal workers bring mail to homes.', correctWhy: 'Postmen work in the postal service to deliver letters and parcels.', reasons: { 'Farmer': 'Farmers grow crops; they do not deliver mail.', 'Teacher': 'Teachers educate students; they do not deliver mail.' } }
+      ],
+      3: [
+        { q: 'What is the capital of Odisha?', a: 'Bhubaneswar', d: ['Cuttack','Puri'], tip: 'Known as the City of Temples.', correctWhy: 'Bhubaneswar is the present capital city of Odisha.', reasons: { 'Cuttack': 'Cuttack was a former capital and is a major city but not current capital.', 'Puri': 'Puri is a famous pilgrimage town, not the capital.' } },
+        { q: 'Which sea is along Odisha’s coast?', a: 'Bay of Bengal', d: ['Arabian Sea','Indian Ocean'], tip: 'Odisha lies on the eastern coast of India.', correctWhy: 'Odisha’s coastline is on the Bay of Bengal in the east.', reasons: { 'Arabian Sea': 'The Arabian Sea is on India’s western side.', 'Indian Ocean': 'The Indian Ocean is larger; Odisha directly borders the Bay of Bengal.' } },
+        { q: 'Who is the head of a school?', a: 'Principal', d: ['Mayor','Collector'], tip: 'Leads the school and teachers.', correctWhy: 'The Principal is the administrative head of a school.', reasons: { 'Mayor': 'A Mayor heads a city’s municipal body, not a school.', 'Collector': 'A District Collector is a district administrator, not a school head.' } }
+      ],
+      4: [
+        { q: 'What do we call the rules of a country?', a: 'Constitution', d: ['Newspaper','Calendar'], tip: 'It guides how the country is run.', correctWhy: 'The Constitution is the supreme law that sets rules for the country.', reasons: { 'Newspaper': 'A newspaper carries daily news, not the nation’s rules.', 'Calendar': 'A calendar shows dates; it is not a rulebook.' } },
+        { q: 'What is a village leader often called?', a: 'Sarpanch', d: ['Governor','Minister'], tip: 'Leads the Gram Panchayat.', correctWhy: 'A Sarpanch is the elected head of a Gram Panchayat.', reasons: { 'Governor': 'A Governor is the head of a state, not a village.', 'Minister': 'A Minister serves in government; not the village council head.' } },
+        { q: 'Which festival is famous in Puri?', a: 'Rath Yatra', d: ['Bihu','Pongal'], tip: 'Chariots carry Lord Jagannath.', correctWhy: 'Rath Yatra in Puri features Lord Jagannath’s chariot procession.', reasons: { 'Bihu': 'Bihu is celebrated mainly in Assam.', 'Pongal': 'Pongal is a harvest festival in Tamil Nadu.' } }
+      ],
+      5: [
+        { q: 'Who wrote the national anthem of India?', a: 'Rabindranath Tagore', d: ['Bankim Chandra','Sarojini Naidu'], tip: 'Composed “Jana Gana Mana”.', correctWhy: 'Rabindranath Tagore composed “Jana Gana Mana,” our national anthem.', reasons: { 'Bankim Chandra': 'Bankim Chandra wrote “Vande Mataram,” not the anthem.', 'Sarojini Naidu': 'Sarojini Naidu was a poet and leader but did not write the anthem.' } },
+        { q: 'Which line divides Earth into two halves?', a: 'Equator', d: ['Tropic of Cancer','Prime Meridian'], tip: 'It is at 0° latitude.', correctWhy: 'The Equator at 0° latitude divides Earth into North and South.', reasons: { 'Tropic of Cancer': 'It is a latitude at ~23.5°N; not the divider of halves.', 'Prime Meridian': 'It is 0° longitude; divides East and West, not North/South.' } },
+        { q: 'What is Odisha’s famous classical dance?', a: 'Odissi', d: ['Kathakali','Bharatanatyam'], tip: 'Graceful poses and temple origins.', correctWhy: 'Odissi is the classical dance form that originated in Odisha.', reasons: { 'Kathakali': 'Kathakali is a classical dance from Kerala.', 'Bharatanatyam': 'Bharatanatyam is a classical dance from Tamil Nadu.' } }
+      ],
+      6: [
+        { q: 'Who built the Konark Sun Temple?', a: 'Narasimha Deva I', d: ['Ashoka','Akbar'], tip: 'Eastern Ganga dynasty king.', correctWhy: 'King Narasimha Deva I of the Eastern Ganga dynasty built it in the 13th century.', reasons: { 'Ashoka': 'Ashoka was a Mauryan emperor (3rd century BCE), much earlier.', 'Akbar': 'Akbar was a Mughal emperor (16th century), not linked to Konark’s construction.' } },
+        { q: 'What is the state animal of Odisha?', a: 'Sambar', d: ['Tiger','Elephant'], tip: 'A large deer native to India.', correctWhy: 'Sambar (a large deer) is officially the state animal of Odisha.', reasons: { 'Tiger': 'Tiger is India’s national animal, not Odisha’s state animal.', 'Elephant': 'Elephant is the state animal of some states, but not Odisha.' } },
+        { q: 'Panchayati Raj is governance at which level?', a: 'Local', d: ['State','Union'], tip: 'Local self-government in villages.', correctWhy: 'Panchayati Raj is local self-government at the village level.', reasons: { 'State': 'State government is at the state level, not village level.', 'Union': 'Union government is the central government, not local.' } }
+      ],
+      7: [
+        { q: 'The Prime Meridian passes through which city?', a: 'Greenwich', d: ['Paris','Rome'], tip: '0° longitude reference line.', correctWhy: 'Greenwich in London is the reference for 0° longitude.', reasons: { 'Paris': 'Paris is near 2°E; it is not the Prime Meridian.', 'Rome': 'Rome is further east; not on 0° longitude.' } },
+        { q: 'Who was the first Governor-General of independent India?', a: 'Lord Mountbatten', d: ['C. Rajagopalachari','Dr. Rajendra Prasad'], tip: 'Last Viceroy, then Governor-General.', correctWhy: 'Lord Mountbatten served as the first Governor-General in 1947.', reasons: { 'C. Rajagopalachari': 'Rajaji became Governor-General later (1948).', 'Dr. Rajendra Prasad': 'He was the first President of India, not Governor-General.' } },
+        { q: 'Odisha’s major river flowing into Chilika Lake is?', a: 'Daya', d: ['Mahanadi','Brahmani'], tip: 'Daya river feeds Chilika near Puri.', correctWhy: 'The Daya River flows into Chilika Lake south of Bhubaneswar.', reasons: { 'Mahanadi': 'Mahanadi flows into the Bay of Bengal, not directly into Chilika.', 'Brahmani': 'Brahmani joins with Baitarani near Dhamra; not into Chilika.' } }
+      ],
+      8: [
+        { q: 'Indian Parliament is located in which city?', a: 'New Delhi', d: ['Mumbai','Kolkata'], tip: 'Capital of India.', correctWhy: 'The Parliament House is in New Delhi, India’s capital city.', reasons: { 'Mumbai': 'Mumbai is a major financial city, not the capital.', 'Kolkata': 'Kolkata is a major eastern city, not the capital.' } },
+        { q: 'Which cyclone-prone bay borders Odisha?', a: 'Bay of Bengal', d: ['Persian Gulf','Gulf of Aden'], tip: 'Cyclones often form here.', correctWhy: 'Odisha borders the Bay of Bengal where many cyclones form.', reasons: { 'Persian Gulf': 'The Persian Gulf is in West Asia, far from Odisha.', 'Gulf of Aden': 'The Gulf of Aden lies near Yemen and Somalia, not India.' } },
+        { q: 'Fundamental Rights are part of which document?', a: 'Constitution of India', d: ['Penal Code','Civil Code'], tip: 'They protect citizens’ freedoms.', correctWhy: 'Fundamental Rights are listed in the Constitution of India.', reasons: { 'Penal Code': 'The Penal Code defines crimes and punishments, not rights.', 'Civil Code': 'Civil codes govern civil matters; rights are in the Constitution.' } }
+      ]
+    };
+
+    function generateSocialStudiesProblem(grade) {
+      const list = SS_BANK[grade] || SS_BANK[1];
+      const item = list[randInt(0, list.length - 1)];
+      // choices: correct + distractors, with why
+      const choices = shuffle([
+        { value: item.a, why: item.correctWhy || 'This is the correct answer.', correct: true },
+        ...item.d.map((x) => ({ value: x, why: (item.reasons && item.reasons[x]) || 'This option does not match the question.', correct: false }))
+      ]).slice(0,3);
+      const correctIndex = choices.findIndex(c => c.correct);
+      return {
+        text: item.q,
+        answer: item.a,
+        meta: { kind: 'ss', tip: item.tip, correctWhy: item.correctWhy },
+        _choices: choices,
+        _correctIndex: correctIndex
+      };
+    }
 
     function buildChoicesForProblem(problem) {
       // Returns { list: [{ value, why, correct }...3], correctIndex }
@@ -779,10 +855,16 @@
     function nextProblem() {
       const p = generateProblem(state.grade, state.difficulty);
       state.currentProblem = p;
-      const built = buildChoicesForProblem(p);
-      state.currentChoices = built.list.map(c => c.value);
-      state.currentExplainData = built.list;
-      state.correctIndex = built.correctIndex;
+      if (state.subject === 'SocialStudies' && p._choices) {
+        state.currentChoices = p._choices.map(c => c.value);
+        state.currentExplainData = p._choices;
+        state.correctIndex = p._correctIndex;
+      } else {
+        const built = buildChoicesForProblem(p);
+        state.currentChoices = built.list.map(c => c.value);
+        state.currentExplainData = built.list;
+        state.correctIndex = built.correctIndex;
+      }
       renderProblem();
     }
 
@@ -831,6 +913,7 @@
 
     function startGame() {
       state.playerName = el.playerName.value.trim();
+      state.subject = el.subject.value;
       state.mode = el.mode.value;
       state.grade = parseInt(el.grade.value, 10);
       state.difficulty = el.difficulty.value;
@@ -966,6 +1049,7 @@
         case 'percent': return 'Convert percent to decimal (p/100) then multiply by the base.';
         case 'ratio': return 'Divide both parts by the greatest common divisor.';
         case 'pythag': return 'Square, add, then square root: c = √(a²+b²).';
+        case 'ss': return meta.tip || 'Re-read the question; pick the most specific correct option.';
         default: return 'Read the operation carefully; estimate to check your result.';
       }
     }
@@ -1013,6 +1097,7 @@
         score: state.score,
         grade: state.grade,
         difficulty: state.difficulty,
+        subject: state.subject || 'Math',
         date: nowDateString()
       };
       const list = loadLeaderboard();
@@ -1035,7 +1120,7 @@
         row.innerHTML = `
           <div>
             <strong>#${i+1} ${e.name}</strong>
-            <div class="lb-meta">Grade ${e.grade} • ${e.difficulty} • ${e.date}</div>
+            <div class="lb-meta">${e.subject || 'Math'} • Grade ${e.grade} • ${e.difficulty} • ${e.date}</div>
           </div>
           <div style="font-weight:800; color: var(--gold);">${e.score}</div>
         `;
