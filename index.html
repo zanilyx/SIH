@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Math Blaster</title>
+  <style>
+    /*
+      Math Blaster - Single file prototype
+      Minimal, responsive, no dependencies
+    */
+
+    :root {
+      --bg: #0f1226;
+      --panel: #171a36;
+      --panel-2: #1f2347;
+      --text: #f3f6ff;
+      --muted: #b9c0ff;
+      --accent: #7aa2ff;
+      --accent-2: #00d1b2;
+      --danger: #ff5c7a;
+      --gold: #ffd166;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 10% -10%, #1a1f4a, transparent),
+                  radial-gradient(900px 500px at 110% 10%, #1a1f4a, transparent),
+                  var(--bg);
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+
+    header {
+      padding: 12px 16px;
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border-bottom: 1px solid #2a2f68;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      font-size: 22px;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .content {
+      flex: 1;
+      display: flex;
+      align-items: stretch;
+    }
+
+    /* Panels */
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.15));
+      border: 1px solid #2a2f68;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    /* Left main area */
+    .left {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .landing {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .landing h2 {
+      grid-column: 1 / -1;
+      margin: 0 0 4px 0;
+      font-size: 18px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    select, input[type="text"] {
+      background: #121433;
+      border: 1px solid #2b3080;
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color .2s, transform .05s;
+    }
+    select:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+    .actions {
+      display: flex;
+      align-items: end;
+      gap: 8px;
+    }
+    .btn {
+      background: linear-gradient(180deg, #3b5bff, #2943d7);
+      color: white;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: .4px;
+      cursor: pointer;
+      transition: transform .05s ease, opacity .2s;
+      user-select: none;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn.secondary {
+      background: linear-gradient(180deg, #2b2f66, #1f234f);
+    }
+
+    /* HUD */
+    .hud {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 12px;
+      align-items: center;
+    }
+    .hud .tile {
+      background: #121433;
+      border: 1px solid #2a2f68;
+      border-radius: 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .hud .label { color: var(--muted); font-size: 12px; }
+    .hud .value { font-size: 18px; font-weight: 800; }
+
+    .lives span { font-size: 20px; margin: 0 2px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+
+    /* Gameplay */
+    .game {
+      padding: 16px;
+      display: grid;
+      place-items: center;
+      min-height: 320px;
+    }
+    .card {
+      width: min(520px, 100%);
+      background: radial-gradient(500px 160px at 50% -20%, rgba(122,162,255,0.15), transparent), #111433;
+      border: 1px solid #2b3080;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      animation: pop .18s ease;
+    }
+    @keyframes pop { from { transform: scale(.98); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+    .problem {
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      letter-spacing: .6px;
+      margin: 10px 0 16px;
+    }
+    .choices { display: grid; gap: 10px; grid-template-columns: 1fr; }
+    .choice {
+      padding: 12px;
+      background: #181b44;
+      border: 1px solid #2a2f68;
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: center;
+      font-weight: 700;
+      transition: transform .05s ease, background .2s, border-color .2s;
+      user-select: none;
+    }
+    .choice:hover { background: #1b1f51; }
+    .choice.correct { border-color: var(--accent-2); box-shadow: 0 0 0 2px rgba(0,209,178,.25) inset; }
+    .choice.wrong { border-color: var(--danger); animation: wobble .25s ease; }
+    @keyframes wobble { 25%{ transform: translateX(-3px) } 75%{ transform: translateX(3px) } }
+
+    .xp {
+      position: absolute;
+      pointer-events: none;
+      color: var(--gold);
+      text-shadow: 0 2px 6px rgba(0,0,0,.6);
+      animation: rise 650ms ease forwards;
+      font-weight: 800;
+    }
+    @keyframes rise { from { transform: translateY(6px); opacity: 0 } 40%{ opacity: 1 } to { transform: translateY(-18px); opacity: 0 } }
+
+    /* Leaderboard */
+    .right.leaderboard {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .right h3 { margin: 0; font-size: 16px; color: var(--muted); }
+    .lb-list { display: grid; gap: 8px; }
+    .lb-item {
+      background: #121433;
+      border: 1px solid #2a2f68;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+    .lb-meta { color: var(--muted); font-size: 12px; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 7, 20, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal {
+      width: min(520px, 92%);
+      background: #111433;
+      border: 1px solid #2a2f68;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      animation: pop .18s ease;
+    }
+    .modal h3 { margin: 4px 0 12px; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="panel">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.32L12 14.77 7.22 16.7l.91-5.32L4.27 7.62l5.34-.78L12 2z" fill="#7aa2ff"/>
+      </svg>
+      <h1>Math Blaster</h1>
+    </div>
+  </header>
+
+  <div class="container content">
+    <section class="left">
+      <!-- Landing / Controls -->
+      <div class="panel landing">
+        <h2>Ready, Set, Blast!</h2>
+        <div class="field">
+          <label for="playerName">Player Name</label>
+          <input id="playerName" type="text" placeholder="Enter your name" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label for="grade">Grade</label>
+          <select id="grade">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="difficulty">Difficulty</label>
+          <select id="difficulty">
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
+          </select>
+        </div>
+        <div class="actions">
+          <button id="startBtn" class="btn" disabled>Start</button>
+          <button id="resetBtn" class="btn secondary">Reset</button>
+        </div>
+      </div>
+
+      <!-- HUD -->
+      <div class="panel hud">
+        <div class="tile">
+          <div class="label">Time</div>
+          <div class="value" id="time">60</div>
+        </div>
+        <div class="tile">
+          <div class="label">Score</div>
+          <div class="value" id="score">0</div>
+        </div>
+        <div class="tile">
+          <div class="label">Multiplier</div>
+          <div class="value" id="multiplier">x1</div>
+        </div>
+        <div class="tile">
+          <div class="label">Lives</div>
+          <div class="value lives" id="lives">❤️❤️❤️</div>
+        </div>
+      </div>
+
+      <!-- Gameplay Area -->
+      <div class="panel game">
+        <div class="card" id="card" style="display:none">
+          <div class="problem" id="problem">7 + 5 = ?</div>
+          <div class="choices">
+            <div class="choice" data-idx="0" id="choice0">A) 10</div>
+            <div class="choice" data-idx="1" id="choice1">B) 12</div>
+            <div class="choice" data-idx="2" id="choice2">C) 14</div>
+          </div>
+        </div>
+        <div id="idleHint" style="text-align:center;color:var(--muted);">
+          Press Start to begin. Solve as many as you can!
+        </div>
+      </div>
+    </section>
+
+    <!-- Leaderboard -->
+    <aside class="panel right leaderboard">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3>Leaderboard (Top 5)</h3>
+        <button id="clearLb" class="btn secondary" style="padding:6px 10px; font-weight:600;">Clear</button>
+      </div>
+      <div id="lbList" class="lb-list"></div>
+      <div class="lb-meta">Scores saved locally on this device.</div>
+    </aside>
+  </div>
+
+  <!-- End Game Modal -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="endTitle">
+    <div class="modal">
+      <h3 id="endTitle">Game Over</h3>
+      <p>Your Score: <strong id="finalScore">0</strong></p>
+      <div class="field" style="margin:10px 0;">
+        <label for="submitName">Submit Score As</label>
+        <input id="submitName" type="text" placeholder="Your name" />
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="submitScore" class="btn">Submit to Leaderboard</button>
+        <button id="closeModal" class="btn secondary">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =============================
+    // CONFIG
+    // =============================
+    const CONFIG = {
+      basePoints: 10,
+      startTimeSeconds: 60,
+      maxLives: 3,
+      leaderboardKey: 'mathBlasterLeaderboardV1'
+    };
+
+    // =============================
+    // STATE
+    // =============================
+    const state = {
+      playerName: '',
+      grade: 1,
+      difficulty: 'Easy',
+      score: 0,
+      streak: 0,
+      multiplier: 1,
+      lives: CONFIG.maxLives,
+      timeLeft: CONFIG.startTimeSeconds,
+      timerId: null,
+      currentProblem: null,
+      currentChoices: [],
+      correctIndex: 0,
+      gameActive: false
+    };
+
+    // Elements
+    const el = {
+      playerName: document.getElementById('playerName'),
+      grade: document.getElementById('grade'),
+      difficulty: document.getElementById('difficulty'),
+      startBtn: document.getElementById('startBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      time: document.getElementById('time'),
+      score: document.getElementById('score'),
+      multiplier: document.getElementById('multiplier'),
+      lives: document.getElementById('lives'),
+      card: document.getElementById('card'),
+      idleHint: document.getElementById('idleHint'),
+      problem: document.getElementById('problem'),
+      choices: [
+        document.getElementById('choice0'),
+        document.getElementById('choice1'),
+        document.getElementById('choice2')
+      ],
+      modalBackdrop: document.getElementById('modalBackdrop'),
+      finalScore: document.getElementById('finalScore'),
+      submitName: document.getElementById('submitName'),
+      submitScore: document.getElementById('submitScore'),
+      closeModal: document.getElementById('closeModal'),
+      lbList: document.getElementById('lbList'),
+      clearLb: document.getElementById('clearLb')
+    };
+
+    // =============================
+    // UTILS
+    // =============================
+    const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+    const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+    const nowDateString = () => new Date().toLocaleDateString();
+
+    function setLivesDisplay(value) {
+      const hearts = '❤️'.repeat(value) + '🖤'.repeat(CONFIG.maxLives - value);
+      el.lives.textContent = hearts;
+    }
+
+    function setMultiplierDisplay(streak) {
+      state.multiplier = 1 + Math.floor(streak / 3);
+      el.multiplier.textContent = 'x' + state.multiplier;
+    }
+
+    function spawnXpPopup(text, anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      const xp = document.createElement('div');
+      xp.className = 'xp';
+      xp.textContent = text;
+      xp.style.left = (rect.left + rect.width/2) + 'px';
+      xp.style.top = (rect.top) + 'px';
+      document.body.appendChild(xp);
+      setTimeout(() => xp.remove(), 700);
+    }
+
+    // =============================
+    // PROBLEM GENERATOR
+    // =============================
+    // NOTE: To extend problem types, add a generator that returns { text, answer }
+    // and update selectRangeByGradeDifficulty for ranges.
+    function selectRangeByGradeDifficulty(grade, difficulty) {
+      const d = difficulty;
+      if (grade <= 2) {
+        if (d === 'Easy') return { min: 0, max: 20 };
+        if (d === 'Medium') return { min: 0, max: 50 };
+        return { min: 0, max: 100 };
+      } else if (grade <= 4) {
+        if (d === 'Easy') return { min: 2, max: 12 };
+        if (d === 'Medium') return { min: 10, max: 99 };
+        return { min: 10, max: 99 };
+      } else if (grade <= 6) {
+        // For fractions/decimals/simple linear, use ranges that keep numbers small
+        return { min: 1, max: 20 };
+      } else {
+        // 7-8: percentages/ratios/pythagorean
+        return { min: 3, max: 20 };
+      }
+    }
+
+    function generateProblem(grade, difficulty) {
+      const range = selectRangeByGradeDifficulty(grade, difficulty);
+      // Grades 1-2: addition/subtraction
+      if (grade <= 2) {
+        const a = randInt(range.min, range.max);
+        const b = randInt(range.min, range.max);
+        const op = Math.random() < 0.5 ? '+' : '-';
+        const ans = op === '+' ? a + b : a - b;
+        return { text: `${a} ${op} ${b} = ?`, answer: ans };
+      }
+
+      // Grades 3-4: multiplication/division
+      if (grade <= 4) {
+        if (difficulty === 'Easy') {
+          const a = randInt(range.min, range.max);
+          const b = randInt(range.min, range.max);
+          const op = Math.random() < 0.5 ? '×' : '÷';
+          if (op === '×') return { text: `${a} × ${b} = ?`, answer: a * b };
+          const prod = a * b;
+          return { text: `${prod} ÷ ${a} = ?`, answer: b };
+        } else if (difficulty === 'Medium') {
+          const a = randInt(10, 99);
+          const b = randInt(2, 9);
+          const op = Math.random() < 0.6 ? '×' : '÷';
+          if (op === '×') return { text: `${a} × ${b} = ?`, answer: a * b };
+          const prod = a * b;
+          return { text: `${prod} ÷ ${a} = ?`, answer: b };
+        } else {
+          const a = randInt(10, 99);
+          const b = randInt(10, 99);
+          return { text: `${a} × ${b} = ?`, answer: a * b };
+        }
+      }
+
+      // Grades 5-6: fractions/decimals/linear eq (calculation variants only)
+      if (grade <= 6) {
+        const type = ['fraction', 'decimal', 'linear'][randInt(0, 2)];
+        if (type === 'fraction') {
+          // Simplify like a/b + c/d where d is small
+          const a = randInt(1, range.max);
+          const b = randInt(2, 9);
+          const c = randInt(1, range.max);
+          const d = randInt(2, 9);
+          const num = a * d + c * b;
+          const den = b * d;
+          const value = +(num / den).toFixed(2);
+          return { text: `${a}/${b} + ${c}/${d} ≈ ? (2dp)`, answer: value };
+        }
+        if (type === 'decimal') {
+          const a = +(randInt(range.min, range.max) + Math.random()).toFixed(1);
+          const b = +(randInt(range.min, range.max) + Math.random()).toFixed(1);
+          const op = Math.random() < 0.5 ? '+' : '-';
+          const ans = +(op === '+' ? a + b : a - b).toFixed(1);
+          return { text: `${a} ${op} ${b} = ?`, answer: ans };
+        }
+        // linear: x + k = n  OR  kx = n
+        if (Math.random() < 0.5) {
+          const k = randInt(1, 12);
+          const n = randInt(k + 1, 40);
+          return { text: `Solve x + ${k} = ${n}`, answer: n - k };
+        } else {
+          const k = randInt(2, 12);
+          const x = randInt(2, 12);
+          return { text: `Solve ${k}x = ${k * x}`, answer: x };
+        }
+      }
+
+      // Grades 7-8: percentages, ratios, Pythagorean (numerical only)
+      const type = ['percent', 'ratio', 'pythag'][randInt(0, 2)];
+      if (type === 'percent') {
+        const base = randInt(20, 200);
+        const p = [10, 12.5, 20, 25, 30, 40, 50][randInt(0, 6)];
+        const ans = +((p / 100) * base).toFixed(2);
+        return { text: `${p}% of ${base} = ?`, answer: ans };
+      }
+      if (type === 'ratio') {
+        // Simplify a:b where gcd(a,b) > 1, ask for simplified a:b
+        const a = randInt(4, 30);
+        const b = randInt(4, 30);
+        const g = gcd(a, b);
+        return { text: `Simplify ratio ${a}:${b}`, answer: `${a/g}:${b/g}` };
+      }
+      // Pythagorean: find c for legs a,b
+      const a = randInt(3, 15);
+      const b = randInt(3, 15);
+      const c = Math.sqrt(a*a + b*b);
+      const rounded = Number.isInteger(c) ? c : +c.toFixed(2);
+      return { text: `Right triangle legs ${a}, ${b}. c = ?`, answer: rounded };
+    }
+
+    function gcd(a, b){ return b ? gcd(b, a % b) : a; }
+
+    function buildChoices(correct) {
+      // Return [choicesArray, correctIndex]
+      const asString = typeof correct === 'string';
+      const isNumber = !asString;
+      const choices = new Set();
+      if (isNumber) {
+        choices.add(Number(correct));
+        while (choices.size < 3) {
+          const delta = randInt(-10, 10) || 1;
+          choices.add(Number(correct) + delta);
+        }
+        const arr = shuffle(Array.from(choices)).slice(0,3);
+        const idx = arr.findIndex(v => v === Number(correct));
+        return [arr, idx];
+      } else {
+        // For string answers (like simplified ratios)
+        choices.add(String(correct));
+        while (choices.size < 3) {
+          const [p, q] = String(correct).split(':').map(Number);
+          const tweakP = Math.max(1, p + randInt(-1, 1));
+          const tweakQ = Math.max(1, q + randInt(-1, 1));
+          choices.add(`${tweakP}:${tweakQ}`);
+        }
+        const arr = shuffle(Array.from(choices)).slice(0,3);
+        const idx = arr.findIndex(v => v === String(correct));
+        return [arr, idx];
+      }
+    }
+
+    // =============================
+    // GAME LOGIC
+    // =============================
+    function resetState() {
+      state.score = 0;
+      state.streak = 0;
+      state.multiplier = 1;
+      state.lives = CONFIG.maxLives;
+      state.timeLeft = CONFIG.startTimeSeconds;
+      state.timerId = null;
+      state.currentProblem = null;
+      state.currentChoices = [];
+      state.correctIndex = 0;
+      state.gameActive = false;
+      renderHud();
+      el.card.style.display = 'none';
+      el.idleHint.style.display = 'block';
+    }
+
+    function renderHud() {
+      el.time.textContent = state.timeLeft;
+      el.score.textContent = state.score;
+      setMultiplierDisplay(state.streak);
+      setLivesDisplay(state.lives);
+    }
+
+    function startTimer() {
+      clearInterval(state.timerId);
+      state.timerId = setInterval(() => {
+        if (!state.gameActive) return;
+        state.timeLeft--;
+        el.time.textContent = state.timeLeft;
+        if (state.timeLeft <= 0) {
+          endGame('Time up!');
+        }
+      }, 1000);
+    }
+
+    function nextProblem() {
+      const p = generateProblem(state.grade, state.difficulty);
+      state.currentProblem = p;
+      const [choices, idx] = buildChoices(p.answer);
+      state.currentChoices = choices;
+      state.correctIndex = idx;
+      renderProblem();
+    }
+
+    function renderProblem() {
+      el.problem.textContent = state.currentProblem.text;
+      state.currentChoices.forEach((c, i) => {
+        const label = i === 0 ? 'A' : (i === 1 ? 'B' : 'C');
+        el.choices[i].textContent = `${label}) ${c}`;
+        el.choices[i].classList.remove('correct','wrong');
+      });
+      el.idleHint.style.display = 'none';
+      el.card.style.display = 'block';
+    }
+
+    function handleAnswer(index) {
+      if (!state.gameActive) return;
+      const correct = index === state.correctIndex;
+      const btn = el.choices[index];
+      if (correct) {
+        btn.classList.add('correct');
+        state.streak += 1;
+        setMultiplierDisplay(state.streak);
+        const gained = CONFIG.basePoints * state.multiplier;
+        state.score += gained;
+        el.score.textContent = state.score;
+        spawnXpPopup(`+${gained}`, btn);
+        setTimeout(nextProblem, 220);
+      } else {
+        btn.classList.add('wrong');
+        state.lives -= 1;
+        state.streak = 0;
+        setMultiplierDisplay(state.streak);
+        setLivesDisplay(state.lives);
+        if (state.lives <= 0) {
+          return endGame('No lives left');
+        }
+      }
+    }
+
+    function startGame() {
+      state.playerName = el.playerName.value.trim();
+      state.grade = parseInt(el.grade.value, 10);
+      state.difficulty = el.difficulty.value;
+      resetState();
+      state.gameActive = true;
+      renderHud();
+      nextProblem();
+      startTimer();
+      el.submitName.value = state.playerName;
+    }
+
+    function endGame(reason) {
+      state.gameActive = false;
+      clearInterval(state.timerId);
+      el.finalScore.textContent = state.score;
+      openModal();
+    }
+
+    // =============================
+    // UI HANDLERS
+    // =============================
+    function openModal() {
+      el.modalBackdrop.style.display = 'flex';
+    }
+    function closeModal() {
+      el.modalBackdrop.style.display = 'none';
+    }
+
+    function wireEvents() {
+      el.playerName.addEventListener('input', () => {
+        el.startBtn.disabled = el.playerName.value.trim().length === 0;
+      });
+      el.startBtn.addEventListener('click', () => startGame());
+      el.resetBtn.addEventListener('click', () => resetState());
+      el.closeModal.addEventListener('click', () => closeModal());
+      el.submitScore.addEventListener('click', () => {
+        saveScore();
+        renderLeaderboard();
+        closeModal();
+      });
+      el.clearLb.addEventListener('click', () => {
+        if (confirm('Clear all leaderboard entries on this device?')) {
+          localStorage.removeItem(CONFIG.leaderboardKey);
+          renderLeaderboard();
+        }
+      });
+      el.choices.forEach((cEl, idx) => {
+        cEl.addEventListener('click', () => handleAnswer(idx));
+      });
+    }
+
+    // =============================
+    // LEADERBOARD
+    // =============================
+    function loadLeaderboard() {
+      try {
+        const raw = localStorage.getItem(CONFIG.leaderboardKey);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveScore() {
+      const name = el.submitName.value.trim() || 'Player';
+      const entry = {
+        name,
+        score: state.score,
+        grade: state.grade,
+        difficulty: state.difficulty,
+        date: nowDateString()
+      };
+      const list = loadLeaderboard();
+      list.push(entry);
+      list.sort((a,b) => b.score - a.score);
+      const top5 = list.slice(0, 5);
+      localStorage.setItem(CONFIG.leaderboardKey, JSON.stringify(top5));
+    }
+
+    function renderLeaderboard() {
+      const list = loadLeaderboard();
+      el.lbList.innerHTML = '';
+      if (list.length === 0) {
+        el.lbList.innerHTML = '<div class="lb-meta">No scores yet. Be the first!</div>';
+        return;
+      }
+      list.forEach((e, i) => {
+        const row = document.createElement('div');
+        row.className = 'lb-item';
+        row.innerHTML = `
+          <div>
+            <strong>#${i+1} ${e.name}</strong>
+            <div class="lb-meta">Grade ${e.grade} • ${e.difficulty} • ${e.date}</div>
+          </div>
+          <div style="font-weight:800; color: var(--gold);">${e.score}</div>
+        `;
+        el.lbList.appendChild(row);
+      });
+    }
+
+    // Init
+    wireEvents();
+    renderLeaderboard();
+    resetState();
+  </script>
+</body>
+</html>
+
+
