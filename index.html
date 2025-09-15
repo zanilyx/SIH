@@ -289,6 +289,13 @@
           <input id="playerName" type="text" placeholder="Enter your name" autocomplete="off" />
         </div>
         <div class="field">
+          <label for="mode">Mode</label>
+          <select id="mode">
+            <option value="Competitive">Competitive</option>
+            <option value="Learning">Learning</option>
+          </select>
+        </div>
+        <div class="field">
           <label for="grade">Grade</label>
           <select id="grade">
             <option value="1">1</option>
@@ -344,6 +351,16 @@
             <div class="choice" data-idx="1" id="choice1">B) 12</div>
             <div class="choice" data-idx="2" id="choice2">C) 14</div>
           </div>
+          <div id="explain" style="display:none; margin-top:12px;">
+            <div class="panel" style="padding:12px; border-radius:10px; background:#0f1336; border:1px solid #2a2f68;">
+              <div style="font-weight:800; margin-bottom:8px; color: var(--gold);">Why these answers?</div>
+              <div id="explainList" style="display:grid; gap:6px; font-size:14px;"></div>
+              <div id="tip" class="lb-meta" style="margin-top:8px; font-size:13px;"></div>
+              <div style="display:flex; gap:8px; margin-top:10px;">
+                <button id="nextBtn" class="btn">Next</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="idleHint" style="text-align:center;color:var(--muted);">
           Press Start to begin. Solve as many as you can!
@@ -396,6 +413,7 @@
       playerName: '',
       grade: 1,
       difficulty: 'Easy',
+      mode: 'Competitive',
       score: 0,
       streak: 0,
       multiplier: 1,
@@ -411,6 +429,7 @@
     // Elements
     const el = {
       playerName: document.getElementById('playerName'),
+      mode: document.getElementById('mode'),
       grade: document.getElementById('grade'),
       difficulty: document.getElementById('difficulty'),
       startBtn: document.getElementById('startBtn'),
@@ -427,6 +446,10 @@
         document.getElementById('choice1'),
         document.getElementById('choice2')
       ],
+      explain: document.getElementById('explain'),
+      explainList: document.getElementById('explainList'),
+      tip: document.getElementById('tip'),
+      nextBtn: document.getElementById('nextBtn'),
       modalBackdrop: document.getElementById('modalBackdrop'),
       finalScore: document.getElementById('finalScore'),
       submitName: document.getElementById('submitName'),
@@ -496,7 +519,7 @@
         const b = randInt(range.min, range.max);
         const op = Math.random() < 0.5 ? '+' : '-';
         const ans = op === '+' ? a + b : a - b;
-        return { text: `${a} ${op} ${b} = ?`, answer: ans };
+        return { text: `${a} ${op} ${b} = ?`, answer: ans, meta: { kind: op === '+' ? 'add' : 'sub', a, b } };
       }
 
       // Grades 3-4: multiplication/division
@@ -505,20 +528,20 @@
           const a = randInt(range.min, range.max);
           const b = randInt(range.min, range.max);
           const op = Math.random() < 0.5 ? '×' : '÷';
-          if (op === '×') return { text: `${a} × ${b} = ?`, answer: a * b };
+          if (op === '×') return { text: `${a} × ${b} = ?`, answer: a * b, meta: { kind: 'mul', a, b } };
           const prod = a * b;
-          return { text: `${prod} ÷ ${a} = ?`, answer: b };
+          return { text: `${prod} ÷ ${a} = ?`, answer: b, meta: { kind: 'div', prod, a, b } };
         } else if (difficulty === 'Medium') {
           const a = randInt(10, 99);
           const b = randInt(2, 9);
           const op = Math.random() < 0.6 ? '×' : '÷';
-          if (op === '×') return { text: `${a} × ${b} = ?`, answer: a * b };
+          if (op === '×') return { text: `${a} × ${b} = ?`, answer: a * b, meta: { kind: 'mul', a, b } };
           const prod = a * b;
-          return { text: `${prod} ÷ ${a} = ?`, answer: b };
+          return { text: `${prod} ÷ ${a} = ?`, answer: b, meta: { kind: 'div', prod, a, b } };
         } else {
           const a = randInt(10, 99);
           const b = randInt(10, 99);
-          return { text: `${a} × ${b} = ?`, answer: a * b };
+          return { text: `${a} × ${b} = ?`, answer: a * b, meta: { kind: 'mul', a, b } };
         }
       }
 
@@ -534,24 +557,24 @@
           const num = a * d + c * b;
           const den = b * d;
           const value = +(num / den).toFixed(2);
-          return { text: `${a}/${b} + ${c}/${d} ≈ ? (2dp)`, answer: value };
+          return { text: `${a}/${b} + ${c}/${d} ≈ ? (2dp)`, answer: value, meta: { kind: 'fracAdd', a, b, c, d, num, den } };
         }
         if (type === 'decimal') {
           const a = +(randInt(range.min, range.max) + Math.random()).toFixed(1);
           const b = +(randInt(range.min, range.max) + Math.random()).toFixed(1);
           const op = Math.random() < 0.5 ? '+' : '-';
           const ans = +(op === '+' ? a + b : a - b).toFixed(1);
-          return { text: `${a} ${op} ${b} = ?`, answer: ans };
+          return { text: `${a} ${op} ${b} = ?`, answer: ans, meta: { kind: op === '+' ? 'decAdd' : 'decSub', a, b } };
         }
         // linear: x + k = n  OR  kx = n
         if (Math.random() < 0.5) {
           const k = randInt(1, 12);
           const n = randInt(k + 1, 40);
-          return { text: `Solve x + ${k} = ${n}`, answer: n - k };
+          return { text: `Solve x + ${k} = ${n}`, answer: n - k, meta: { kind: 'linAdd', k, n } };
         } else {
           const k = randInt(2, 12);
           const x = randInt(2, 12);
-          return { text: `Solve ${k}x = ${k * x}`, answer: x };
+          return { text: `Solve ${k}x = ${k * x}`, answer: x, meta: { kind: 'linMul', k, prod: k * x } };
         }
       }
 
@@ -561,21 +584,21 @@
         const base = randInt(20, 200);
         const p = [10, 12.5, 20, 25, 30, 40, 50][randInt(0, 6)];
         const ans = +((p / 100) * base).toFixed(2);
-        return { text: `${p}% of ${base} = ?`, answer: ans };
+        return { text: `${p}% of ${base} = ?`, answer: ans, meta: { kind: 'percent', p, base } };
       }
       if (type === 'ratio') {
         // Simplify a:b where gcd(a,b) > 1, ask for simplified a:b
         const a = randInt(4, 30);
         const b = randInt(4, 30);
         const g = gcd(a, b);
-        return { text: `Simplify ratio ${a}:${b}`, answer: `${a/g}:${b/g}` };
+        return { text: `Simplify ratio ${a}:${b}`, answer: `${a/g}:${b/g}`, meta: { kind: 'ratio', a, b, g } };
       }
       // Pythagorean: find c for legs a,b
       const a = randInt(3, 15);
       const b = randInt(3, 15);
       const c = Math.sqrt(a*a + b*b);
       const rounded = Number.isInteger(c) ? c : +c.toFixed(2);
-      return { text: `Right triangle legs ${a}, ${b}. c = ?`, answer: rounded };
+      return { text: `Right triangle legs ${a}, ${b}. c = ?`, answer: rounded, meta: { kind: 'pythag', a, b, c: rounded } };
     }
 
     function gcd(a, b){ return b ? gcd(b, a % b) : a; }
@@ -663,6 +686,7 @@
         el.choices[i].textContent = `${label}) ${c}`;
         el.choices[i].classList.remove('correct','wrong');
       });
+      el.explain.style.display = 'none';
       el.idleHint.style.display = 'none';
       el.card.style.display = 'block';
     }
@@ -671,6 +695,12 @@
       if (!state.gameActive) return;
       const correct = index === state.correctIndex;
       const btn = el.choices[index];
+      if (state.mode === 'Learning') {
+        // Always show explanation, do not change timer/lives/score
+        if (correct) btn.classList.add('correct'); else btn.classList.add('wrong');
+        showExplanation();
+        return;
+      }
       if (correct) {
         btn.classList.add('correct');
         state.streak += 1;
@@ -694,13 +724,19 @@
 
     function startGame() {
       state.playerName = el.playerName.value.trim();
+      state.mode = el.mode.value;
       state.grade = parseInt(el.grade.value, 10);
       state.difficulty = el.difficulty.value;
       resetState();
       state.gameActive = true;
       renderHud();
       nextProblem();
-      startTimer();
+      if (state.mode === 'Competitive') {
+        startTimer();
+      } else {
+        // Learning mode visuals
+        el.time.textContent = '∞';
+      }
       el.submitName.value = state.playerName;
     }
 
@@ -719,6 +755,93 @@
     }
     function closeModal() {
       el.modalBackdrop.style.display = 'none';
+    }
+
+    function showExplanation() {
+      // Build explanations for each choice and a tip
+      const expl = buildExplanations(state.currentProblem, state.currentChoices, state.correctIndex);
+      el.explainList.innerHTML = '';
+      state.currentChoices.forEach((choice, i) => {
+        const row = document.createElement('div');
+        const label = i === 0 ? 'A' : (i === 1 ? 'B' : 'C');
+        const ok = i === state.correctIndex;
+        row.innerHTML = `<strong style="color:${ok ? 'var(--accent-2)' : 'var(--danger)'}">${label}) ${choice}</strong> — ${expl.perChoice[i]}`;
+        el.explainList.appendChild(row);
+      });
+      el.tip.innerHTML = `<strong>Tip:</strong> ${expl.tip}`;
+      el.explain.style.display = 'block';
+    }
+
+    // =============================
+    // EXPLANATION BUILDER
+    // =============================
+    function buildExplanations(problem, choices, correctIdx) {
+      const meta = problem.meta || { kind: 'generic' };
+      const correct = choices[correctIdx];
+      const perChoice = choices.map((c, i) => explainChoice(meta, c, i === correctIdx, correct));
+      const tip = tipFor(meta);
+      return { perChoice, tip };
+    }
+
+    function explainChoice(meta, value, isCorrect, correctValue) {
+      if (isCorrect) return explanationFor(meta, true, value);
+      return explanationFor(meta, false, value, correctValue);
+    }
+
+    function explanationFor(meta, isCorrect, value, correctValue) {
+      const k = meta.kind;
+      if (isCorrect) {
+        switch (k) {
+          case 'add': return `${meta.a} + ${meta.b} = ${meta.a + meta.b}`;
+          case 'sub': return `${meta.a} - ${meta.b} = ${meta.a - meta.b}`;
+          case 'mul': return `${meta.a} × ${meta.b} = ${meta.a * meta.b}`;
+          case 'div': return `${meta.prod} ÷ ${meta.a} = ${meta.b}`;
+          case 'fracAdd': return `Common denom ${meta.b}×${meta.d} = ${meta.b*meta.d}. Sum ${meta.a}×${meta.d} + ${meta.c}×${meta.b} = ${meta.num}/${meta.den} ≈ ${(meta.num/meta.den).toFixed(2)}`;
+          case 'decAdd': return `Align decimals: ${meta.a} + ${meta.b} = ${(meta.a + meta.b).toFixed(1)}`;
+          case 'decSub': return `Align decimals: ${meta.a} - ${meta.b} = ${(meta.a - meta.b).toFixed(1)}`;
+          case 'linAdd': return `x + ${meta.k} = ${meta.n} ⇒ x = ${meta.n} - ${meta.k} = ${meta.n - meta.k}`;
+          case 'linMul': return `${meta.k}x = ${meta.prod} ⇒ x = ${meta.prod}/${meta.k} = ${meta.prod/meta.k}`;
+          case 'percent': return `${meta.p}% of ${meta.base} = ${meta.base} × ${meta.p}/100 = ${((meta.p/100)*meta.base).toFixed(2)}`;
+          case 'ratio': return `gcd(${meta.a}, ${meta.b}) = ${meta.g}. Simplify: ${meta.a}/${meta.g}:${meta.b}/${meta.g}`;
+          case 'pythag': return `c = √(${meta.a}² + ${meta.b}²) = √(${meta.a*meta.a} + ${meta.b*meta.b}) ≈ ${meta.c}`;
+          default: return `This is the correct result.`;
+        }
+      } else {
+        // Wrong: generic reasons per topic
+        switch (k) {
+          case 'add': return `This equals ${value}. Likely a carry/borrowing slip. Correct is ${meta.a + meta.b}.`;
+          case 'sub': return `This equals ${value}. Check subtraction order: ${meta.a} - ${meta.b} = ${meta.a - meta.b}.`;
+          case 'mul': return `This equals ${value}. Recheck the table: ${meta.a} × ${meta.b} = ${meta.a * meta.b}.`;
+          case 'div': return `This equals ${value}. Use inverse: ${meta.prod} ÷ ${meta.a} = ${meta.b}.`;
+          case 'fracAdd': return `This equals ${value}. Don't add tops and bottoms directly. Use common denominator → ${(meta.num/meta.den).toFixed(2)}.`;
+          case 'decAdd': return `This equals ${value}. Align decimal points; ${meta.a} + ${meta.b} = ${(meta.a + meta.b).toFixed(1)}.`;
+          case 'decSub': return `This equals ${value}. Align decimal points; ${meta.a} - ${meta.b} = ${(meta.a - meta.b).toFixed(1)}.`;
+          case 'linAdd': return `This equals ${value}. Remember to subtract ${meta.k} from both sides: ${meta.n} - ${meta.k}.`;
+          case 'linMul': return `This equals ${value}. Divide both sides by ${meta.k}: ${meta.prod}/${meta.k}.`;
+          case 'percent': return `This equals ${value}. Compute base × percent/100, not divide/multiply wrongly.`;
+          case 'ratio': return `This equals ${value}. Make sure to divide both parts by gcd ${meta.g}.`;
+          case 'pythag': return `This equals ${value}. Use a² + b² then square root, not a + b.`;
+          default: return `Not the result of the required operation. Correct is ${correctValue}.`;
+        }
+      }
+    }
+
+    function tipFor(meta) {
+      switch (meta.kind) {
+        case 'add': return 'Stack numbers vertically and add ones → tens. Say it aloud.';
+        case 'sub': return 'Subtract top-bottom. If needed, borrow from the next column.';
+        case 'mul': return 'Break into parts: (a×b) = (a×10) + (a×units), or use tables.';
+        case 'div': return 'Think “how many groups of a in prod?” Check by multiplying back.';
+        case 'fracAdd': return 'Find common denominator first. Multiply top and bottom by the same number.';
+        case 'decAdd': return 'Line up the decimal points before adding. Keep one decimal place.';
+        case 'decSub': return 'Line up decimals; add a trailing zero if helpful.';
+        case 'linAdd': return 'Do the same to both sides to isolate x.';
+        case 'linMul': return 'Divide both sides by the coefficient of x.';
+        case 'percent': return 'Convert percent to decimal (p/100) then multiply by the base.';
+        case 'ratio': return 'Divide both parts by the greatest common divisor.';
+        case 'pythag': return 'Square, add, then square root: c = √(a²+b²).';
+        default: return 'Read the operation carefully; estimate to check your result.';
+      }
     }
 
     function wireEvents() {
@@ -742,6 +865,7 @@
       el.choices.forEach((cEl, idx) => {
         cEl.addEventListener('click', () => handleAnswer(idx));
       });
+      el.nextBtn.addEventListener('click', () => nextProblem());
     }
 
     // =============================
